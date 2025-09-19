@@ -1,12 +1,22 @@
 import streamlit as st
 import numpy as np
 import tensorflow as tf
+from tensorflow.keras.layers import InputLayer
 from sklearn.preprocessing import StandardScaler, LabelEncoder, OneHotEncoder
 import pandas as pd
 import pickle
 
-# load the trained model
-model=tf.keras.models.load_model('model.h5',compile=False)
+# Shim to make old H5 configs load on newer Keras/TF
+class CompatibleInputLayer(InputLayer):
+    @classmethod
+    def from_config(cls, config):
+        cfg = dict(config)
+        if "batch_shape" in cfg and "batch_input_shape" not in cfg:
+            cfg["batch_input_shape"] = cfg.pop("batch_shape")
+        return super().from_config(cfg)
+
+with tf.keras.utils.custom_object_scope({"InputLayer": CompatibleInputLayer}):
+    model = tf.keras.models.load_model("model.h5", compile=False)
 
 # Load the encoders and scaler
 with open('label_encoder_gender.pkl', 'rb') as file:
@@ -68,3 +78,4 @@ if prediction_proba > 0.5:
 else:
 
     st.write('The customer is not likely to churn.')
+
