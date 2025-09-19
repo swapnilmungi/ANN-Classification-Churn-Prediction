@@ -6,7 +6,13 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder, OneHotEncoder
 import pandas as pd
 import pickle
 
-# Shim to make old H5 configs load on newer Keras/TF
+import os
+os.environ["KERAS_BACKEND"] = "tensorflow"   # must be set BEFORE importing keras
+
+from keras import models, utils
+from keras.layers import InputLayer
+
+# shim for old configs that use 'batch_shape'
 class CompatibleInputLayer(InputLayer):
     @classmethod
     def from_config(cls, config):
@@ -14,6 +20,9 @@ class CompatibleInputLayer(InputLayer):
         if "batch_shape" in cfg and "batch_input_shape" not in cfg:
             cfg["batch_input_shape"] = cfg.pop("batch_shape")
         return super().from_config(cfg)
+
+with utils.custom_object_scope({"InputLayer": CompatibleInputLayer}):
+    model = models.load_model("model.h5", compile=False)
 
 with tf.keras.utils.custom_object_scope({"InputLayer": CompatibleInputLayer}):
     model = tf.keras.models.load_model("model.h5", compile=False)
@@ -78,4 +87,5 @@ if prediction_proba > 0.5:
 else:
 
     st.write('The customer is not likely to churn.')
+
 
