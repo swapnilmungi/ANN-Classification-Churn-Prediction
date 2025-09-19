@@ -12,7 +12,11 @@ os.environ["KERAS_BACKEND"] = "tensorflow"   # must be set BEFORE importing kera
 from keras import models, utils
 from keras.layers import InputLayer
 
-# shim for old configs that use 'batch_shape'
+from keras import models, utils
+from keras.layers import InputLayer
+from keras.mixed_precision import Policy
+
+# Shim: older models used 'batch_shape' key
 class CompatibleInputLayer(InputLayer):
     @classmethod
     def from_config(cls, config):
@@ -21,11 +25,20 @@ class CompatibleInputLayer(InputLayer):
             cfg["batch_input_shape"] = cfg.pop("batch_shape")
         return super().from_config(cfg)
 
-with utils.custom_object_scope({"InputLayer": CompatibleInputLayer}):
+# Shim: map serialized 'DTypePolicy' to a real Policy object
+def DTypePolicy(config=None, **kwargs):
+    # incoming config looks like {'name': 'float32'}
+    name = (config or {}).get("name", "float32")
+    return Policy(name)
+
+with utils.custom_object_scope({
+    "InputLayer": CompatibleInputLayer,
+    "DTypePolicy": DTypePolicy,
+}):
     model = models.load_model("model.h5", compile=False)
 
-with tf.keras.utils.custom_object_scope({"InputLayer": CompatibleInputLayer}):
-    model = tf.keras.models.load_model("model.h5", compile=False)
+import streamlit as st, keras, tensorflow as tf, h5py
+st.write({"keras": keras.__version__, "tf": tf.__version__, "h5py": h5py.__version__})
 
 # Load the encoders and scaler
 with open('label_encoder_gender.pkl', 'rb') as file:
@@ -87,5 +100,6 @@ if prediction_proba > 0.5:
 else:
 
     st.write('The customer is not likely to churn.')
+
 
 
