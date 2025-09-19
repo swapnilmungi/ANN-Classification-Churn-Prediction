@@ -13,7 +13,8 @@ memory_profiler==0.61.0
 ipykernel==6.29.5
 tensorboard==2.15.2
 keras==3.3.3
-tensorflow-cpu==2.15.0.post1
+tensorflow==2.17.1
 h5py==3.10.0
+
 
 
